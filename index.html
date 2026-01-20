@@ -1,0 +1,810 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>يــوسف أمير - Sur3a</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        olive: {
+                            500: '#556B2F', 
+                            600: '#485c26',
+                            900: '#1a1a1a'
+                        }
+                    },
+                    fontFamily: {
+                        cairo: ['Cairo', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+
+    <style>
+        body { 
+            font-family: 'Cairo', sans-serif; 
+            background-color: #f9fafb;
+            color: #1f2937;
+            overflow-x: hidden; 
+            text-align: right;
+        }
+        
+        /* الهيرو */
+        #home {
+            height: 100vh;
+            background: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url('profile.jpg');
+            background-size: cover;
+            background-position: center;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+
+        /* الأزرار */
+        .olive-btn {
+            background-color: #556B2F;
+            color: white;
+            border: 2px solid #556B2F;
+            transition: 0.3s;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .olive-btn:hover {
+            background-color: white;
+            color: #556B2F;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 10px rgba(0,0,0,0.15);
+        }
+
+        /* الكروت */
+        .car-card, .comment-card {
+            background-color: white;
+            border-radius: 15px;
+            overflow: hidden;
+            border: 1px solid #e5e7eb;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            transition: 0.4s;
+        }
+        .car-card:hover, .comment-card:hover {
+            transform: translateY(-5px);
+            border-color: #556B2F;
+            box-shadow: 0 10px 15px -3px rgba(85, 107, 47, 0.2);
+        }
+        .car-card img {
+            width: 100%;
+            height: 250px;
+            object-fit: cover;
+            transition: 0.4s;
+        }
+        .car-card:hover img { transform: scale(1.05); }
+
+        /* المودال */
+        .modal-content {
+            background-color: white;
+            color: #1f2937;
+            border: 1px solid #e5e7eb;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        }
+
+        input, textarea, select {
+            text-align: right;
+            direction: rtl;
+        }
+
+        .star-rating i.active { color: #556B2F; }
+        .star-rating i.inactive { color: #d1d5db; }
+        
+        @keyframes pop { 0% { transform: scale(1); } 50% { transform: scale(1.4); } 100% { transform: scale(1); } }
+        .heart-pop { animation: pop 0.3s ease-in-out; }
+
+        .loader { border: 4px solid #f3f3f3; border-top: 4px solid #556B2F; border-radius: 50%; width: 25px; height: 25px; animation: spin 1s linear infinite; margin: 10px auto; display: none; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* أيقونات التواصل */
+        .social-link {
+            width: 50px; height: 50px;
+            display: inline-flex; align-items: center; justify-content: center;
+            border-radius: 50%;
+            color: white; font-size: 1.4rem;
+            transition: 0.3s;
+            margin: 0 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+        }
+        .social-link:hover { transform: translateY(-5px) scale(1.1); }
+        
+        /* ألوان المنصات */
+        .bg-whatsapp { background: #25D366; }
+        .bg-instagram { background: #C13584; }
+        .bg-tiktok { background: #000000; }
+        .bg-facebook { background: #1877F2; }
+        .bg-snapchat { background: #FFFC00; color: black; }
+        .bg-twitter { background: #1DA1F2; }
+        .bg-linkedin { background: #0077B5; }
+        .bg-telegram { background: #0088cc; }
+        .bg-website { background: #333; }
+
+    </style>
+</head>
+<body class="bg-gray-50">
+
+<div id="welcome-modal" class="fixed inset-0 bg-black/50 z-[5000] hidden flex items-center justify-center p-4 backdrop-blur-sm">
+    <div class="modal-content border-t-4 border-olive-500 p-6 w-full max-w-md rounded-lg text-center">
+        <h3 class="text-2xl font-bold mb-4 text-gray-800">👋 رسالة ترحيب</h3>
+        <p id="welcome-text" class="text-lg mb-6 text-gray-600">أهلاً بك في موقع عشاق السرعة!</p>
+        <a id="welcome-btn" href="#" target="_blank" class="hidden block w-full bg-olive-500 text-white font-bold py-3 mb-4 rounded hover:bg-olive-600 transition-all">فتح الرابط <i class="fas fa-external-link-alt ml-2"></i></a>
+        <button onclick="closeWelcomeModal()" class="w-full bg-gray-200 text-gray-800 font-bold py-2 rounded hover:bg-gray-300 transition-all">إغلاق</button>
+    </div>
+</div>
+
+<header class="fixed w-full top-0 z-50 bg-white/90 backdrop-blur-md border-b border-gray-200 shadow-sm">
+    <nav class="flex justify-between items-center max-w-6xl mx-auto p-4">
+        <div class="font-black text-2xl text-gray-800 tracking-widest cursor-pointer hover:text-olive-600 transition-colors" 
+             onclick="document.getElementById('admin-modal').classList.remove('hidden')">
+            Sur<span class="text-olive-500">3a</span>
+        </div>
+        <ul class="flex gap-6 font-bold list-none text-gray-600">
+            <li><a href="#home" class="hover:text-olive-500 transition">الرئيسية</a></li>
+            <li><a href="#garage" class="hover:text-olive-500 transition">المعرض</a></li>
+            <li><a href="#guestbook" class="hover:text-olive-500 transition">التعليقات</a></li>
+        </ul>
+    </nav>
+</header>
+
+<section id="home">
+    <div class="hero-content z-10 px-4 relative">
+        <h1 class="text-5xl md:text-7xl font-black mb-4 text-white drop-shadow-lg">يــوسف أمير | <span class="text-olive-500">سرعة</span></h1>
+        <p class="text-xl md:text-2xl text-gray-200 mb-6 font-light shadow-black">محاسب وعاشق سيارات.</p>
+        <button onclick="openModal()" class="olive-btn text-xl px-8 py-3 rounded-full flex items-center justify-center gap-3 mx-auto shadow-lg border-white/20">
+            <i class="fas fa-pen-fancy"></i> أكتب تعليقك للذكرى
+        </button>
+    </div>
+</section>
+
+<section id="garage" class="py-20 px-4 text-center bg-white">
+    <h2 class="text-3xl font-bold text-gray-800 mb-10 border-b-4 border-olive-500 inline-block pb-2">معرض الشغف</h2>
+    
+    <div id="admin-upload-area" class="hidden max-w-2xl mx-auto mb-12 bg-gray-100 p-6 rounded-xl border-2 border-dashed border-olive-500 relative text-right">
+        <h4 class="font-bold text-lg text-olive-600 mb-4 flex items-center gap-2">
+            <i class="fas fa-plus-circle"></i> إضافة سيارة جديدة للمعرض
+        </h4>
+        <label class="block text-sm font-bold mb-1 text-gray-600">صورة السيارة:</label>
+        <input type="file" id="card-img-upload" accept="image/*" class="w-full bg-white border border-gray-300 p-2 rounded mb-3 text-sm">
+        <label class="block text-sm font-bold mb-1 text-gray-600">العنوان:</label>
+        <input type="text" id="card-title" class="w-full bg-white border border-gray-300 p-2 rounded mb-3" placeholder="مثال: فيراري حمراء">
+        <label class="block text-sm font-bold mb-1 text-gray-600">الوصف:</label>
+        <textarea id="card-desc" class="w-full bg-white border border-gray-300 p-2 rounded mb-4 h-20" placeholder="وصف السيارة..."></textarea>
+        <div class="loader" id="card-loader"></div>
+        <button onclick="uploadCardWithDetails()" class="w-full olive-btn py-2 rounded font-bold shadow-md">رفع وإضافة الآن</button>
+    </div>
+
+    <div id="garage-container" class="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div class="col-span-full text-center text-gray-400 py-10">جاري تحميل الصور...</div>
+    </div>
+</section>
+
+<section id="contact-links" class="py-12 bg-gray-100 text-center border-t border-b border-gray-200">
+    <div class="max-w-4xl mx-auto px-4">
+        <h2 class="text-2xl font-bold text-gray-700 mb-6">تواصل معي</h2>
+        <div id="social-links-display" class="flex justify-center flex-wrap gap-6">
+            </div>
+    </div>
+</section>
+
+<section id="guestbook" class="py-20 bg-gray-50 text-center">
+    <div class="max-w-5xl mx-auto px-4">
+        <h2 class="text-3xl font-bold text-gray-800 mb-8">آراء الأصدقاء</h2>
+        <button onclick="openModal()" class="olive-btn text-lg px-6 py-2 mb-10 rounded-lg inline-flex items-center gap-2">
+            <i class="fas fa-plus"></i> اختر شخصيتك وعلق
+        </button>
+        <div id="comments-container" class="grid grid-cols-1 md:grid-cols-2 gap-6 w-full text-right">
+            <div class="col-span-full text-center text-gray-400 py-10 font-bold text-lg">
+                <i class="fas fa-spinner fa-spin text-olive-500 text-3xl mb-4"></i><br>
+                جاري الاتصال بقاعدة البيانات...
+            </div>
+        </div>
+    </div>
+</section>
+
+<footer class="bg-white text-center p-8 border-t border-gray-200 mt-10">
+    <p class="font-bold text-gray-600 text-sm">
+        Powered by: <span class="text-blue-600">Mo64 Ai</span> | 
+        Made by: <a href="https://6m4.me/" target="_blank" class="text-olive-600 hover:underline font-black">64Group</a>
+    </p>
+</footer>
+
+<div id="comment-modal" class="fixed inset-0 bg-black/60 z-[2000] hidden flex items-center justify-center p-4 backdrop-blur-sm">
+    <div class="modal-content w-full max-w-md p-6 rounded-xl relative text-right">
+        <button onclick="closeModal()" class="absolute top-3 left-4 text-2xl text-gray-400 hover:text-red-500">&times;</button>
+        <h3 class="text-2xl font-bold mb-6 text-center text-olive-600">اختر شخصيتك</h3>
+        
+        <div id="step-1">
+            <label class="block mb-2 text-sm font-bold text-gray-600">اسمك:</label>
+            <input type="text" id="input-name" maxlength="11" class="w-full bg-gray-50 border border-gray-300 p-3 rounded mb-4 text-gray-800 focus:border-olive-500 focus:ring-1 focus:ring-olive-500 outline-none transition" placeholder="الاسم...">
+            <label class="block mb-2 text-sm font-bold text-gray-600">اختر شكلك (الأفاتار):</label>
+            <div class="grid grid-cols-3 gap-3 mb-6" id="avatar-grid"></div>
+            <button onclick="goToStep2()" class="w-full olive-btn py-3 rounded font-bold shadow-md">التالي</button>
+        </div>
+        
+        <div id="step-2" class="hidden">
+            <label class="block mb-2 text-center text-sm font-bold text-gray-600">التقييم:</label>
+            <div class="flex gap-2 justify-center mb-6 text-3xl star-rating" id="rating-stars">
+                <i class="fas fa-star active" onclick="setRating(1)"></i>
+                <i class="fas fa-star active" onclick="setRating(2)"></i>
+                <i class="fas fa-star active" onclick="setRating(3)"></i>
+                <i class="fas fa-star active" onclick="setRating(4)"></i>
+                <i class="fas fa-star active" onclick="setRating(5)"></i>
+            </div>
+            <label class="block mb-2 text-sm font-bold text-gray-600">رسالتك:</label>
+            <textarea id="input-msg" maxlength="75" class="w-full bg-gray-50 border border-gray-300 p-3 mb-4 rounded h-24 resize-none text-gray-800 focus:border-olive-500 focus:ring-1 focus:ring-olive-500 outline-none" placeholder="اكتب تعليق للذكرى..."></textarea>
+            <div class="flex gap-2">
+                <button onclick="backToStep1()" class="w-1/3 bg-gray-200 text-gray-700 rounded py-2 hover:bg-gray-300 font-bold">رجوع</button>
+                <button onclick="submitComment()" class="w-2/3 olive-btn rounded py-2 font-bold shadow-md">نشر التعليق</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="admin-modal" class="fixed inset-0 bg-black/60 z-[3000] hidden flex items-center justify-center p-4 backdrop-blur-sm">
+    <div class="modal-content p-8 text-center w-full max-w-md relative rounded-xl shadow-2xl overflow-y-auto max-h-[90vh]">
+        <button onclick="document.getElementById('admin-modal').classList.add('hidden')" class="absolute top-2 left-4 font-bold text-xl text-gray-400 hover:text-red-500">X</button>
+        <h3 class="text-xl font-bold mb-4 text-olive-600">الإدارة (S)</h3>
+        
+        <div id="admin-login-section">
+            <input type="password" id="admin-pass" class="w-full bg-gray-50 border border-gray-300 p-3 mb-4 rounded text-center text-gray-800" placeholder="كلمة السر">
+            <button onclick="checkAdmin()" class="olive-btn w-full py-2 rounded shadow-md">دخول</button>
+        </div>
+        
+        <div id="admin-panel-section" class="hidden text-right">
+            
+            <div class="bg-gray-100 p-4 rounded mb-4 border border-gray-200">
+                <h4 class="font-bold text-center mb-2 text-olive-600 border-b border-gray-300 pb-2">🔗 روابط التواصل</h4>
+                
+                <div class="mb-2">
+                    <label class="block text-xs font-bold mb-1">اختر المنصة:</label>
+                    <select id="social-platform-select" class="w-full border p-2 rounded text-sm bg-white">
+                        <option value="whatsapp">واتساب (رقم الهاتف)</option>
+                        <option value="facebook">فيسبوك (اليوزر)</option>
+                        <option value="instagram">انستجرام (اليوزر)</option>
+                        <option value="snapchat">سناب شات (اليوزر)</option>
+                        <option value="twitter">تويتر/X (اليوزر)</option>
+                        <option value="tiktok">تيك توك (اليوزر)</option>
+                        <option value="telegram">تلجرام (اليوزر)</option>
+                        <option value="linkedin">لينكد إن (اليوزر)</option>
+                        <option value="website">موقع إلكتروني (رابط كامل)</option>
+                    </select>
+                </div>
+
+                <div class="mb-3">
+                    <label class="block text-xs font-bold mb-1">اليوزر نيم / الرقم:</label>
+                    <input id="social-value-input" class="w-full border p-2 rounded text-sm" placeholder="مثال: 010xxxx أو user.name">
+                </div>
+
+                <button onclick="addNewSocialLink()" class="w-full bg-blue-600 text-white py-1 rounded text-sm hover:bg-blue-700 mb-3">إضافة الرابط</button>
+
+                <div id="admin-social-list" class="space-y-2"></div>
+            </div>
+
+            <div class="bg-gray-100 p-4 rounded mb-4 border border-gray-200">
+                <h4 class="font-bold text-center mb-2 text-gray-700 border-b border-gray-300 pb-2">الرسالة الترحيبية</h4>
+                <div class="flex justify-between items-center mb-2">
+                    <label class="text-gray-700">تفعيل:</label>
+                    <input type="checkbox" id="welcome-active" class="accent-olive-500 w-5 h-5">
+                </div>
+                <textarea id="welcome-msg-input" class="w-full bg-white border border-gray-300 p-2 rounded text-sm mb-2 text-gray-800" placeholder="النص"></textarea>
+                <input type="text" id="welcome-link-input" placeholder="رابط (اختياري)" class="w-full bg-white border border-gray-300 p-2 rounded text-sm mb-2 text-gray-800">
+                <button onclick="saveWelcomeSettings()" class="w-full bg-gray-800 text-white py-2 rounded text-sm hover:bg-black transition">حفظ الإعدادات</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="edit-modal" class="fixed inset-0 bg-black/60 z-[3000] hidden flex items-center justify-center">
+    <div class="modal-content p-6 w-96 rounded-xl relative shadow-2xl text-right">
+        <h3 class="font-bold mb-4 text-center text-olive-600">تعديل التعليق</h3>
+        <input id="edit-name" class="w-full bg-gray-50 border border-gray-300 p-2 rounded mb-3 text-gray-800" placeholder="الاسم">
+        <div id="edit-avatar-grid" class="grid grid-cols-3 gap-2 mb-4"></div>
+        <div class="flex gap-2 justify-center mb-3 text-2xl star-rating" id="edit-rating-stars"></div>
+        <textarea id="edit-msg" maxlength="75" class="w-full bg-gray-50 border border-gray-300 p-2 rounded mb-3 h-20 resize-none text-gray-800" placeholder="الرسالة"></textarea>
+        <div id="admin-likes-field" class="hidden mb-3">
+            <label class="text-xs text-gray-500">اللايكات:</label>
+            <input id="edit-likes" type="number" class="w-full bg-gray-50 border border-gray-300 p-1 rounded text-gray-800">
+        </div>
+        <input type="hidden" id="edit-id">
+        <div class="flex flex-col gap-2">
+            <button onclick="saveEdit()" class="bg-blue-600 text-white font-bold p-2 rounded hover:bg-blue-700 shadow-md">حفظ</button>
+            <button onclick="deleteCommentFromModal()" class="bg-red-500 text-white font-bold p-2 rounded hover:bg-red-600 shadow-md">حذف</button>
+            <button onclick="document.getElementById('edit-modal').classList.add('hidden')" class="text-sm underline text-center text-gray-500">إلغاء</button>
+        </div>
+    </div>
+</div>
+
+<div id="card-edit-modal" class="fixed inset-0 bg-black/60 z-[3000] hidden flex items-center justify-center">
+    <div class="modal-content p-6 w-96 rounded-xl relative shadow-2xl text-right">
+        <h3 class="font-bold mb-4 text-center text-olive-600">تعديل البطاقة</h3>
+        <label class="block text-sm font-bold mb-1 text-gray-600">العنوان:</label>
+        <input id="edit-card-title" class="w-full bg-gray-50 border border-gray-300 p-2 rounded mb-3 text-gray-800">
+        <label class="block text-sm font-bold mb-1 text-gray-600">الوصف:</label>
+        <textarea id="edit-card-desc" class="w-full bg-gray-50 border border-gray-300 p-2 rounded mb-4 h-24 text-gray-800"></textarea>
+        <input type="hidden" id="edit-card-id">
+        <div class="flex gap-2">
+            <button onclick="saveCardEdit()" class="w-2/3 bg-olive-600 text-white font-bold p-2 rounded hover:bg-olive-700 shadow-md">حفظ التغييرات</button>
+            <button onclick="document.getElementById('card-edit-modal').classList.add('hidden')" class="w-1/3 bg-gray-200 text-gray-700 font-bold p-2 rounded">إلغاء</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyC48dfNnh7Zay9SEPaDeb28eTWaOa1ne-I",
+      authDomain: "sar3aweb.firebaseapp.com",
+      databaseURL: "https://sar3aweb-default-rtdb.firebaseio.com",
+      projectId: "sar3aweb",
+      storageBucket: "sar3aweb.firebasestorage.app",
+      messagingSenderId: "994306024576",
+      appId: "1:994306024576:web:19dd8981a56395c2a5f265",
+      measurementId: "G-FNFVMR07ZZ"
+    };
+    
+    const IMGBB_API_KEY = "b9f47c492ffb8f226378f28a4c371d90";
+
+    let db;
+    try {
+        firebase.initializeApp(firebaseConfig);
+        db = firebase.database();
+        loadComments();
+        loadGalleryCards(); 
+        checkWelcomeMessage();
+        loadSocialLinks(); 
+    } catch (e) { console.error("Firebase Error:", e); }
+
+    // === أفاتارز: دوائر SVG بسيطة ملونة (حسب طلبك: دائرة رأس صغيرة + دائرة جسم كبيرة) ===
+    const avatars = [
+        // 1. أزرق (شاب)
+        `<svg viewBox="0 0 64 64" class="w-full h-full rounded-full bg-blue-100">
+            <circle cx="32" cy="22" r="10" fill="#3B82F6"/> <path d="M12 64 Q32 30 52 64" fill="#1D4ED8"/> </svg>`,
+        
+        // 2. وردي (بنت)
+        `<svg viewBox="0 0 64 64" class="w-full h-full rounded-full bg-pink-100">
+            <circle cx="32" cy="22" r="10" fill="#EC4899"/>
+            <path d="M12 64 Q32 30 52 64" fill="#BE185D"/>
+        </svg>`,
+        
+        // 3. أخضر (شاب)
+        `<svg viewBox="0 0 64 64" class="w-full h-full rounded-full bg-green-100">
+            <circle cx="32" cy="22" r="10" fill="#10B981"/>
+            <path d="M12 64 Q32 30 52 64" fill="#047857"/>
+        </svg>`,
+        
+        // 4. أصفر/برتقالي (بنت)
+        `<svg viewBox="0 0 64 64" class="w-full h-full rounded-full bg-yellow-100">
+            <circle cx="32" cy="22" r="10" fill="#F59E0B"/>
+            <path d="M12 64 Q32 30 52 64" fill="#B45309"/>
+        </svg>`,
+        
+        // 5. رمادي (رسمي)
+        `<svg viewBox="0 0 64 64" class="w-full h-full rounded-full bg-gray-200">
+            <circle cx="32" cy="22" r="10" fill="#6B7280"/>
+            <path d="M12 64 Q32 30 52 64" fill="#374151"/>
+        </svg>`,
+        
+        // 6. أحمر (مميز)
+        `<svg viewBox="0 0 64 64" class="w-full h-full rounded-full bg-red-100">
+            <circle cx="32" cy="22" r="10" fill="#EF4444"/>
+            <path d="M12 64 Q32 30 52 64" fill="#B91C1C"/>
+        </svg>`
+    ];
+
+    let selectedAvatarIndex = 0;
+    let editAvatarIndex = 0;
+    let isAdmin = false;
+    let currentRating = 5;
+    let currentEditRating = 5;
+
+    // === إعدادات المنصات (للوابط التلقائية) ===
+    const socialPlatforms = {
+        'whatsapp': { prefix: 'https://wa.me/', icon: 'fa-whatsapp', bg: 'bg-whatsapp', name: 'واتساب' },
+        'instagram': { prefix: 'https://instagram.com/', icon: 'fa-instagram', bg: 'bg-instagram', name: 'انستجرام' },
+        'facebook': { prefix: 'https://facebook.com/', icon: 'fa-facebook-f', bg: 'bg-facebook', name: 'فيسبوك' },
+        'tiktok': { prefix: 'https://tiktok.com/@', icon: 'fa-tiktok', bg: 'bg-tiktok', name: 'تيك توك' },
+        'snapchat': { prefix: 'https://snapchat.com/add/', icon: 'fa-snapchat-ghost', bg: 'bg-snapchat', name: 'سناب شات' },
+        'twitter': { prefix: 'https://twitter.com/', icon: 'fa-twitter', bg: 'bg-twitter', name: 'تويتر' },
+        'telegram': { prefix: 'https://t.me/', icon: 'fa-telegram', bg: 'bg-telegram', name: 'تلجرام' },
+        'linkedin': { prefix: 'https://linkedin.com/in/', icon: 'fa-linkedin-in', bg: 'bg-linkedin', name: 'لينكد إن' },
+        'website': { prefix: '', icon: 'fa-globe', bg: 'bg-website', name: 'موقع ويب' }
+    };
+
+    // === دوال التواصل الاجتماعي ===
+    function addNewSocialLink() {
+        const platform = document.getElementById('social-platform-select').value;
+        let value = document.getElementById('social-value-input').value.trim();
+        
+        if (!value) return alert('أدخل اليوزر نيم أو الرقم');
+
+        // تنظيف المدخلات (إزالة المسافات للواتس)
+        if (platform === 'whatsapp') value = value.replace(/\s+/g, '').replace('+', '');
+
+        const newLink = { platform: platform, value: value };
+        db.ref('settings/social_links').push(newLink).then(() => {
+            document.getElementById('social-value-input').value = '';
+            alert('تمت الإضافة!');
+        });
+    }
+
+    function deleteSocialLink(key) {
+        if(confirm('حذف هذا الرابط؟')) {
+            db.ref('settings/social_links/' + key).remove();
+        }
+    }
+
+    function loadSocialLinks() {
+        db.ref('settings/social_links').on('value', (snapshot) => {
+            const data = snapshot.val();
+            const displayContainer = document.getElementById('social-links-display');
+            const adminList = document.getElementById('admin-social-list');
+            
+            displayContainer.innerHTML = '';
+            if(adminList) adminList.innerHTML = '';
+
+            if (data) {
+                Object.entries(data).forEach(([key, link]) => {
+                    const info = socialPlatforms[link.platform];
+                    const fullUrl = info.prefix + link.value;
+
+                    // 1. العرض في قسم التواصل (الجديد)
+                    const a = document.createElement('a');
+                    a.href = fullUrl;
+                    a.target = "_blank";
+                    a.className = `social-link ${info.bg}`;
+                    a.innerHTML = `<i class="fab ${info.icon}"></i>`;
+                    displayContainer.appendChild(a);
+
+                    // 2. العرض في قائمة الأدمن (للحذف)
+                    if(adminList) {
+                        const div = document.createElement('div');
+                        div.className = "flex justify-between items-center bg-white p-2 border rounded text-xs";
+                        div.innerHTML = `
+                            <span><i class="fab ${info.icon}"></i> ${info.name}: ${link.value}</span>
+                            <button onclick="deleteSocialLink('${key}')" class="text-red-500 font-bold">X</button>
+                        `;
+                        adminList.appendChild(div);
+                    }
+                });
+            }
+        });
+    }
+
+    // === دوال المعرض والرفع ===
+    function uploadCardWithDetails() {
+        const file = document.getElementById('card-img-upload').files[0];
+        const title = document.getElementById('card-title').value;
+        const desc = document.getElementById('card-desc').value;
+        const loader = document.getElementById('card-loader');
+
+        if (!file || !title || !desc) return alert('الرجاء تعبئة جميع البيانات واختيار صورة');
+
+        loader.style.display = 'block';
+        const formData = new FormData();
+        formData.append("image", file);
+
+        fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, { method: "POST", body: formData })
+        .then(r => r.json())
+        .then(data => {
+            if(data.success) {
+                const newCard = {
+                    url: data.data.url,
+                    title: title,
+                    description: desc,
+                    timestamp: firebase.database.ServerValue.TIMESTAMP
+                };
+                db.ref('gallery_cards').push(newCard).then(() => {
+                    loader.style.display = 'none';
+                    alert('تم إضافة البطاقة بنجاح!');
+                    document.getElementById('card-title').value = '';
+                    document.getElementById('card-desc').value = '';
+                    document.getElementById('card-img-upload').value = '';
+                });
+            } else {
+                throw new Error('فشل رفع الصورة');
+            }
+        }).catch(e => {
+            loader.style.display = 'none';
+            alert('حدث خطأ: ' + e.message);
+        });
+    }
+
+    function loadGalleryCards() {
+        const container = document.getElementById('garage-container');
+        db.ref('gallery_cards').on('value', (snapshot) => {
+            container.innerHTML = '';
+            const data = snapshot.val();
+            
+            if (!data) { 
+                container.innerHTML = '<div class="col-span-full text-center text-gray-400 py-10">المعرض فارغ حالياً.</div>'; 
+                return; 
+            }
+
+            Object.entries(data).reverse().forEach(([key, val]) => {
+                const div = document.createElement('div');
+                div.className = "car-card relative group"; 
+
+                let controls = '';
+                if(isAdmin) {
+                    controls = `
+                    <div class="absolute top-2 left-2 z-10 flex gap-2">
+                        <button onclick="deleteCard('${key}')" class="bg-red-500 text-white p-2 rounded-full shadow hover:bg-red-600 w-8 h-8 flex items-center justify-center transition"><i class="fas fa-trash text-xs"></i></button>
+                        <button onclick="openEditCardModal('${key}', '${val.title}', '${val.description}')" class="bg-blue-500 text-white p-2 rounded-full shadow hover:bg-blue-600 w-8 h-8 flex items-center justify-center transition"><i class="fas fa-pen text-xs"></i></button>
+                    </div>
+                    `;
+                }
+
+                div.innerHTML = `
+                    ${controls}
+                    <img src="${val.url}" alt="${val.title}">
+                    <div class="p-6 text-right">
+                        <h3 class="text-olive-600 font-bold text-xl mb-2">${val.title}</h3>
+                        <p class="text-gray-500 text-sm leading-relaxed">${val.description}</p>
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+        });
+    }
+
+    function deleteCard(key) {
+        if(confirm('هل أنت متأكد من حذف هذه البطاقة؟')) {
+            db.ref('gallery_cards/' + key).remove();
+        }
+    }
+
+    function openEditCardModal(key, title, desc) {
+        document.getElementById('card-edit-modal').classList.remove('hidden');
+        document.getElementById('edit-card-id').value = key;
+        document.getElementById('edit-card-title').value = title;
+        document.getElementById('edit-card-desc').value = desc;
+    }
+
+    function saveCardEdit() {
+        const key = document.getElementById('edit-card-id').value;
+        const title = document.getElementById('edit-card-title').value;
+        const desc = document.getElementById('edit-card-desc').value;
+
+        db.ref('gallery_cards/' + key).update({
+            title: title,
+            description: desc
+        }).then(() => {
+            alert('تم تعديل البطاقة!');
+            document.getElementById('card-edit-modal').classList.add('hidden');
+        });
+    }
+
+    // === باقي الكود ===
+    function saveWelcomeSettings() {
+        const settings = {
+            enabled: document.getElementById('welcome-active').checked,
+            text: document.getElementById('welcome-msg-input').value,
+            link: document.getElementById('welcome-link-input').value
+        };
+        db.ref('settings/welcome').set(settings).then(() => alert('تم الحفظ!'));
+    }
+    function checkWelcomeMessage() {
+        db.ref('settings/welcome').once('value', (snapshot) => {
+            const data = snapshot.val();
+            if (data && data.enabled) {
+                if (localStorage.getItem('seen_welcome_msg_light')) return;
+                document.getElementById('welcome-text').innerText = data.text || "أهلاً بك!";
+                const btn = document.getElementById('welcome-btn');
+                if (data.link && data.link.trim() !== "") { btn.href = data.link; btn.classList.remove('hidden'); } else { btn.classList.add('hidden'); }
+                document.getElementById('welcome-modal').classList.remove('hidden');
+            }
+        });
+    }
+    function closeWelcomeModal() { document.getElementById('welcome-modal').classList.add('hidden'); localStorage.setItem('seen_welcome_msg_light', 'true'); }
+
+    function setRating(n) { currentRating = n; updateStarVisuals('rating-stars', n); }
+    function setEditRating(n) { currentEditRating = n; updateStarVisuals('edit-rating-stars', n); }
+    function updateStarVisuals(containerId, rating) {
+        const container = document.getElementById(containerId);
+        const stars = container.getElementsByTagName('i');
+        for (let i = 0; i < stars.length; i++) {
+            if (i < rating) { stars[i].classList.remove('inactive'); stars[i].classList.add('active'); }
+            else { stars[i].classList.remove('active'); stars[i].classList.add('inactive'); }
+        }
+    }
+    function getStarString(rating) {
+        let stars = '';
+        for(let i=0; i<5; i++) {
+            stars += i < rating ? '<i class="fas fa-star text-olive-500 text-xs"></i>' : '<i class="fas fa-star text-gray-300 text-xs"></i>';
+        }
+        return stars;
+    }
+
+    function openModal() {
+        document.getElementById('comment-modal').classList.remove('hidden');
+        renderAvatarSelection('avatar-grid', (idx) => selectedAvatarIndex = idx, selectedAvatarIndex);
+        setRating(5); 
+    }
+    function closeModal() {
+        document.getElementById('comment-modal').classList.add('hidden');
+        document.getElementById('step-1').classList.remove('hidden');
+        document.getElementById('step-2').classList.add('hidden');
+    }
+
+    function renderAvatarSelection(containerId, callback, currentSelection) {
+        const grid = document.getElementById(containerId); grid.innerHTML = '';
+        avatars.forEach((svg, index) => {
+            const div = document.createElement('div'); 
+            div.className = `border-2 cursor-pointer p-1 rounded-full h-16 w-16 overflow-hidden transition-all hover:scale-105 ${currentSelection === index ? 'border-olive-500 bg-olive-500/10 scale-105 shadow-md' : 'border-gray-200 bg-white'}`; 
+            div.innerHTML = svg;
+            div.onclick = () => { callback(index); renderAvatarSelection(containerId, callback, index); }; 
+            grid.appendChild(div);
+        });
+    }
+
+    function goToStep2() {
+        if (!document.getElementById('input-name').value.trim()) return alert('اكتب اسمك يا بطل!');
+        document.getElementById('step-1').classList.add('hidden'); document.getElementById('step-2').classList.remove('hidden');
+    }
+    function backToStep1() { document.getElementById('step-2').classList.add('hidden'); document.getElementById('step-1').classList.remove('hidden'); }
+
+    function saveMyCommentId(key) { let myComments = JSON.parse(localStorage.getItem('my_comments') || '[]'); myComments.push(key); localStorage.setItem('my_comments', JSON.stringify(myComments)); }
+    function isMyComment(key) { let myComments = JSON.parse(localStorage.getItem('my_comments') || '[]'); return myComments.includes(key); }
+
+    function submitComment() {
+        const name = document.getElementById('input-name').value.trim();
+        const msg = document.getElementById('input-msg').value.trim();
+        if (!msg) return alert('الرسالة فارغة!');
+        
+        const newComment = {
+            name: name, avatarIndex: selectedAvatarIndex, message: msg, likes: 0,
+            rating: currentRating,
+            timestamp: firebase.database.ServerValue.TIMESTAMP
+        };
+
+        db.ref('comments').push(newComment)
+            .then((snap) => {
+                saveMyCommentId(snap.key); 
+                closeModal(); 
+                document.getElementById('input-name').value = ''; 
+                document.getElementById('input-msg').value = '';
+                setTimeout(() => { document.getElementById('guestbook').scrollIntoView({ behavior: 'smooth' }); }, 500);
+            })
+            .catch((error) => {
+                alert("فشل النشر: " + error.message);
+            });
+    }
+
+    function loadComments() {
+        const container = document.getElementById('comments-container');
+        db.ref('comments').on('value', (snapshot) => {
+            container.innerHTML = '';
+            const data = snapshot.val();
+            if (!data) { 
+                container.innerHTML = '<div class="col-span-full text-center text-gray-400 py-10">كن أول من يكتب هنا! 👇</div>'; 
+                return; 
+            }
+            Object.entries(data).reverse().forEach(([key, val]) => {
+                const div = document.createElement('div');
+                div.className = "comment-card p-4 flex items-start gap-4 rounded-xl relative group bg-white";
+                
+                let pressTimer;
+                div.addEventListener('mousedown', function() { pressTimer = setTimeout(() => handleLongPress(key, val), 800); });
+                div.addEventListener('mouseup', function() { clearTimeout(pressTimer); });
+                div.addEventListener('touchstart', function() { pressTimer = setTimeout(() => handleLongPress(key, val), 800); });
+                div.addEventListener('touchend', function() { clearTimeout(pressTimer); });
+
+                let controls = '';
+                if (isAdmin) controls = `<div class="absolute top-2 left-2 flex gap-2"><button onclick="deleteComment('${key}')" class="bg-red-500 text-white text-xs px-2 py-1 rounded shadow">X</button><button onclick="openEditModal('${key}', '${val.name}', '${val.message}', ${val.likes}, ${val.avatarIndex}, ${val.timestamp}, ${val.rating || 5})" class="bg-yellow-500 text-black text-xs px-2 py-1 rounded shadow">E</button></div>`;
+                  
+                const safeAvatarIndex = (val.avatarIndex >= 0 && val.avatarIndex < avatars.length) ? val.avatarIndex : 0;
+                
+                div.innerHTML = `${controls}
+                    <div class="w-16 h-16 flex-shrink-0 flex items-center justify-center rounded-full overflow-hidden border border-olive-500 bg-gray-100 shadow-sm">${avatars[safeAvatarIndex]}</div>
+                    <div class="flex-grow text-right">
+                        <h4 class="font-bold text-lg text-olive-600 leading-none mb-1">${val.name}</h4>
+                        <div class="mb-2">${getStarString(val.rating || 5)}</div>
+                        <p class="text-sm text-gray-600 leading-relaxed bg-gray-50 p-3 rounded-lg border border-gray-100">${val.message}</p>
+                    </div>
+                    <div class="flex flex-col items-center justify-center gap-1 cursor-pointer" onclick="likeComment('${key}')">
+                        <div class="w-8 h-8 transition-transform active:scale-90"><i class="fas fa-heart text-olive-500 text-2xl"></i></div>
+                        <span class="text-xs font-bold text-olive-600">${val.likes}</span>
+                    </div>`;
+                container.appendChild(div);
+            });
+        });
+    }
+
+    function handleLongPress(key, val) {
+        if (isMyComment(key) || isAdmin) {
+            const now = Date.now();
+            if (!isAdmin && (now - val.timestamp > 300000)) { alert('عذراً، انتهت مهلة التعديل (5 دقائق).'); return; }
+            openEditModal(key, val.name, val.message, val.likes, val.avatarIndex, val.timestamp, val.rating || 5);
+        }
+    }
+
+    function likeComment(key) { 
+        db.ref('comments/' + key + '/likes').transaction((curr) => (curr || 0) + 1); 
+    }
+
+    function checkAdmin() {
+        if (document.getElementById('admin-pass').value === 'nancy2003') {
+            isAdmin = true;
+            document.getElementById('admin-login-section').classList.add('hidden');
+            document.getElementById('admin-panel-section').classList.remove('hidden');
+            
+            document.getElementById('admin-upload-area').classList.remove('hidden');
+            
+            db.ref('settings/welcome').once('value', (snapshot) => { 
+                const data = snapshot.val(); 
+                if(data) { 
+                    document.getElementById('welcome-active').checked = data.enabled; 
+                    document.getElementById('welcome-msg-input').value = data.text; 
+                    document.getElementById('welcome-link-input').value = data.link; 
+                } 
+            });
+            // تحميل روابط السوشيال في حقول الأدمن
+            db.ref('settings/social').once('value', (snapshot) => {
+                const data = snapshot.val();
+                if(data) {
+                    document.getElementById('social-whatsapp').value = data.whatsapp || '';
+                    document.getElementById('social-instagram').value = data.instagram || '';
+                    document.getElementById('social-tiktok').value = data.tiktok || '';
+                    document.getElementById('social-facebook').value = data.facebook || '';
+                }
+            });
+
+            alert('أهلاً بك يا زعيم!'); 
+            loadComments(); 
+            loadGalleryCards();
+            loadSocialLinks();
+        } else { alert('خطأ في كلمة السر!'); }
+    }
+
+    function deleteComment(key) { if (confirm('حذف نهائي؟')) db.ref('comments/' + key).remove(); }
+    function deleteCommentFromModal() { const key = document.getElementById('edit-id').value; if (confirm('حذف؟')) { db.ref('comments/' + key).remove().then(() => { document.getElementById('edit-modal').classList.add('hidden'); }); } }
+
+    function openEditModal(key, name, msg, likes, avatarIdx, timestamp, rating) {
+        document.getElementById('edit-modal').classList.remove('hidden'); 
+        document.getElementById('edit-id').value = key; 
+        document.getElementById('edit-name').value = name; 
+        document.getElementById('edit-msg').value = msg;
+        editAvatarIndex = (avatarIdx >= 0 && avatarIdx < avatars.length) ? avatarIdx : 0;
+        renderAvatarSelection('edit-avatar-grid', (idx) => editAvatarIndex = idx, editAvatarIndex);
+        setEditRating(rating);
+        const starContainer = document.getElementById('edit-rating-stars');
+        starContainer.innerHTML = '';
+        for(let i=1; i<=5; i++) {
+            const iTag = document.createElement('i');
+            iTag.className = `fas fa-star ${i <= rating ? 'active' : 'inactive'}`;
+            iTag.onclick = () => setEditRating(i);
+            starContainer.appendChild(iTag);
+        }
+        const likesField = document.getElementById('admin-likes-field');
+        if(isAdmin) { likesField.classList.remove('hidden'); document.getElementById('edit-likes').value = likes; } else { likesField.classList.add('hidden'); document.getElementById('edit-likes').value = likes; }
+    }
+    
+    function saveEdit() {
+        const updates = { 
+            name: document.getElementById('edit-name').value, 
+            message: document.getElementById('edit-msg').value, 
+            avatarIndex: editAvatarIndex,
+            rating: currentEditRating
+        };
+        if(isAdmin) { updates.likes = parseInt(document.getElementById('edit-likes').value); }
+        db.ref('comments/' + document.getElementById('edit-id').value).update(updates).then(() => document.getElementById('edit-modal').classList.add('hidden'));
+    }
+</script>
+
+</body>
+</html>
